@@ -130,11 +130,17 @@ class BTerm
     ]
 
     @hotkeys = [
-      { :key => 'new_terminal',  :value => 'ctrl shift T',     :func => 'terminal_new'   },
-      { :key => 'prev_terminal', :value => 'ctrl shift Left',  :func => 'terminal_prev'  },
-      { :key => 'next_terminal', :value => 'ctrl shift Right', :func => 'terminal_next'  },
-      { :key => 'copy',          :value => 'ctrl shift C',     :func => 'terminal_copy'  },
-      { :key => 'paste',         :value => 'ctrl shift V',     :func => 'terminal_paste' },
+      { :key => 'new_terminal',   :value => 'ctrl shift T',     :func => 'terminal_new'   },
+      { :key => 'prev_terminal',  :value => 'ctrl shift Left',  :func => 'terminal_prev'  },
+      { :key => 'next_terminal',  :value => 'ctrl shift Right', :func => 'terminal_next'  },
+      { :key => 'close_terminal', :value => 'ctrl shift W',     :func => 'terminal_close' },
+      { :key => 'copy',           :value => 'ctrl shift C',     :func => 'terminal_copy'  },
+      { :key => 'paste',          :value => 'ctrl shift V',     :func => 'terminal_paste' },
+    ]
+
+    @hotkeys_custom = [
+      { :event => 'ctrl shift F', :code => 'process_exec "firefox"' },
+      { :event => 'ctrl shift E', :code => 'terminal_new "ssh www.server.org"' },
     ]
 
     @notification_config = [
@@ -164,6 +170,52 @@ class BTerm
 
   def run
     @window.show_all
+  end
+
+  def terminal_new(cmd = nil)
+    terminal = Vte::Terminal.new
+    @terminals.push terminal
+
+    terminal.signal_connect("child-exited") do |widget|
+      terminal_kill widget
+    end
+
+    terminal.signal_connect("window-title-changed") do |widget|
+      update_window_title(widget.window_title) if widget == @window.children[0]
+    end
+
+    @configuration.each do |c|
+      next if @settings.nil? or @settings[c[:key]].nil?
+
+      if c.include? :internal and c[:internal] == true
+        send(c[:func], terminal, @settings[c[:key]])
+      else
+        terminal.send(c[:func], @settings[c[:key]])
+      end
+    end
+
+    if @matches[:rules].is_a? Array
+      @matches[:rules].each do |m|
+        tag = terminal.match_add m['regexp']
+        terminal.match_set_cursor tag, Gdk::Cursor::HAND2
+      end
+    end
+
+    terminal.signal_connect("button-press-event") do |widget, event|
+      button_pressed widget, event
+    end
+
+    if (cmd == nil)
+      terminal.fork_command()
+    else
+      argv = []
+      cmd.split(' ').each do |c| argv.push c.strip end
+      terminal.fork_command({ :argv => argv })
+    end
+
+    terminal.show
+
+    terminal_show @terminals.length - 1
   end
 
 private
@@ -198,6 +250,14 @@ private
       file.write "hotkeys:\n"
       @hotkeys.each do |h|
         file.write "  " + h[:key] + ": " + h[:value] + "\n"
+      end
+
+      file.write "\n"
+      file.write "hotkeys_custom:\n"
+      @hotkeys_custom.each do |h|
+        file.write "\n"
+        file.write "  - hotkey: " + h[:event] + "\n"
+        file.write "    code: " + h[:code] + "\n"
       end
 
       file.write "\n"
@@ -263,6 +323,14 @@ private
       h[:value] = config['hotkeys'][h[:key]]
     end
 
+    # custom hot keys
+    @hotkeys_custom = []
+    if not config['hotkeys_custom'].nil?
+      config['hotkeys_custom'].each do |h|
+        @hotkeys_custom.push({ :event => h['hotkey'], :code => h['code'] })
+      end
+    end
+
     # notification
     @notification_config.each do |n|
        next if config['notification'].nil? or config['notification'][n[:key]].nil?
@@ -301,20 +369,7 @@ private
     ag = Gtk::AccelGroup.new
 
     @hotkeys.each do |h|
-      mask = 0
-      char = nil
-
-      h[:value].split.each do |p|
-        p.strip!
-
-        if p.downcase == 'ctrl'
-          mask |= Gdk::Window::CONTROL_MASK
-        elsif p.downcase == 'shift'
-          mask |= Gdk::Window::SHIFT_MASK
-        else
-          char = Gdk::Keyval.from_name(p)
-        end
-      end
+      mask, char = parse_hotkey h[:value]
 
       if char
         ag.connect(char, mask, Gtk::ACCEL_VISIBLE) do
@@ -324,7 +379,37 @@ private
       end
     end
 
+    @hotkeys_custom.each do |h|
+      mask, char = parse_hotkey h[:event]
+
+      if char
+        ag.connect(char, mask, Gtk::ACCEL_VISIBLE) do
+          eval(h[:code])
+          true
+        end
+      end
+    end
+
     @window.add_accel_group(ag)
+  end
+
+  def parse_hotkey(str)
+    mask = 0
+    char = nil
+
+    str.split.each do |p|
+      p.strip!
+
+      if p.downcase == 'ctrl'
+        mask |= Gdk::Window::CONTROL_MASK
+      elsif p.downcase == 'shift'
+        mask |= Gdk::Window::SHIFT_MASK
+      else
+        char = Gdk::Keyval.from_name(p)
+      end
+    end
+
+    return [ mask, char ]
   end
 
   def create_notification
@@ -337,52 +422,6 @@ private
   end
 
   #### TERMINALS ####
-
-  def terminal_new
-    terminal = Vte::Terminal.new
-    @terminals.push terminal
-
-    terminal.signal_connect("child-exited") do |widget|
-      pos = terminal_pos widget
-      @terminals.delete(widget)
-
-      if @terminals.empty?
-        destroy
-      else
-        terminal_show pos
-      end
-    end
-
-    terminal.signal_connect("window-title-changed") do |widget|
-      update_window_title(widget.window_title) if widget == @window.children[0]
-    end
-
-    @configuration.each do |c|
-      next if @settings.nil? or @settings[c[:key]].nil?
-
-      if c.include? :internal and c[:internal] == true
-        send(c[:func], terminal, @settings[c[:key]])
-      else
-        terminal.send(c[:func], @settings[c[:key]])
-      end
-    end
-
-    if @matches[:rules].is_a? Array
-      @matches[:rules].each do |m|
-        tag = terminal.match_add m['regexp']
-        terminal.match_set_cursor tag, Gdk::Cursor::HAND2
-      end
-    end
-
-    terminal.signal_connect("button-press-event") do |widget, event|
-      button_pressed widget, event
-    end
-
-    terminal.fork_command
-    terminal.show
-
-    terminal_show @terminals.length - 1
-  end
 
   # Just an helper
   def terminal_pos(terminal = nil)
@@ -411,6 +450,23 @@ private
     pos = terminal_pos + 1
     pos = 0 if pos == @terminals.length
     terminal_show pos
+  end
+
+  # close
+  def terminal_close
+    terminal_kill @terminals[terminal_pos]
+  end
+
+  # real kill
+  def terminal_kill(terminal)
+    pos = terminal_pos terminal
+    @terminals.delete(terminal)
+
+    if @terminals.empty?
+      destroy
+    else
+      terminal_show pos
+    end
   end
 
   # show the selected terminal
@@ -462,7 +518,7 @@ private
 
     if event.button == button and event.state == mask
       string, tag = string
-      system @matches[:rules][tag]['app'] + " " + string 
+      process_exec @matches[:rules][tag]['app'] + " " + string
     end
   end
 
@@ -553,13 +609,12 @@ class Notification
       GLib::Timeout.add TIMEOUT do
         @steps -= 1
 
-        @window.set_opacity @steps.to_f / (@config['timeout'] / TIMEOUT).to_f
-
-        if @steps == 0
+        if @steps == -1
           @window.hide
           @running = false
           false
         else
+          @window.set_opacity @steps.to_f / (@config['timeout'] / TIMEOUT).to_f
           true
         end
       end
@@ -567,8 +622,21 @@ class Notification
   end
 end
 
+# Something useful for the custom hotkeys
+def process_exec(cmd)
+  job = fork do
+    exec cmd
+  end
+
+  Process.detach job
+end
+
+def terminal_new(cmd = nil)
+  @@bterm.terminal_new
+end
+
 # Let's start!
 
-bterm = BTerm.new
-bterm.run
+@@bterm = BTerm.new
+@@bterm.run
 Gtk.main

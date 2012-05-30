@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Baku Terminal
+Comment=bterm - Yet Another Terminal
+TryExec=bterm
+Exec=bterm
+Icon=/usr/share/pixmaps/bterm/bterm.png
+Type=Application
+Categories=GNOME;GTK;Utility;TerminalEmulator;
+StartupNotify=true
+X-GNOME-Autostart-enabled=false

@@ -144,7 +144,7 @@ class BTerm
     ]
 
     @notification_config = [
-      { :key => 'markup',  :value => "<span font_desc=\"Sans 30\" background=\"black\" foreground=\"red\">%s</span>",
+      { :key => 'markup',  :value => "<span font_desc=\"Purisa 30\" background=\"black\" foreground=\"red\">%s</span>",
         :msg => 'Read http://developer.gnome.org/pango/unstable/PangoMarkupFormat.html' },
       { :key => 'timeout', :value => 1500,
         :msg => 'This value is in milliseconds.' },
@@ -598,6 +598,7 @@ class Notification
 
   def show(text)
     @label.set_markup @config['markup'].sub("%s", text)
+    @window.resize 1, 1
     @window.show_all
 
     @window.set_opacity 1

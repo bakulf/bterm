@@ -144,7 +144,7 @@ class BTerm
     ]
 
     @notification_config = [
-      { :key => 'markup',  :value => "<span font_desc=\"Purisa 30\" background=\"black\" foreground=\"red\">%s</span>",
+      { :key => 'markup',  :value => "<span font_desc=\"Purisa 30\" foreground=\"red\">%s</span>",
         :msg => 'Read http://developer.gnome.org/pango/unstable/PangoMarkupFormat.html' },
       { :key => 'timeout', :value => 1500,
         :msg => 'This value is in milliseconds.' },
@@ -576,10 +576,16 @@ class Notification
     @window = Gtk::Window.new Gtk::Window::POPUP
     @window.decorated = false
     @window.set_keep_above true
+    @window.set_app_paintable true
     @window.window_position = Gtk::Window::POS_CENTER_ALWAYS
 
     @label = Gtk::Label.new
     @window.add @label
+
+    @window.signal_connect('expose-event') do expose end
+
+    colormap = @window.screen.rgba_colormap
+    @window.set_colormap @window.screen.rgba_colormap if not colormap.nil?
 
     @window.set_can_focus false
     @label.set_can_focus false
@@ -620,6 +626,18 @@ class Notification
         end
       end
     end
+  end
+
+  private
+  def expose
+    c = @window.window.create_cairo_context
+
+    c.set_source_rgba(1.0, 1.0, 1.0, 0.0)
+    c.set_operator Cairo::OPERATOR_SOURCE
+    c.paint
+    c.destroy
+
+    false
   end
 end
 

@@ -464,7 +464,10 @@ private
 
   # prev
   def terminal_prev
-    return if @terminals.length <= 1
+    if @terminals.length <= 1
+      @notification.show('nothing more than this...')
+      return
+    end
 
     pos = terminal_pos - 1
     pos = @terminals.length - 1 if pos == -1
@@ -473,7 +476,10 @@ private
 
   # next
   def terminal_next
-    return if @terminals.length <= 1
+    if @terminals.length <= 1
+      @notification.show('nothing more than this...')
+      return
+    end
 
     pos = terminal_pos + 1
     pos = 0 if pos == @terminals.length

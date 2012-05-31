@@ -29,6 +29,8 @@ TERMINAL_MATCH_EXPRS = [
 
 # Here, my terminal
 class BTerm
+  attr_accessor :notification
+
   def initialize
     @configuration = [
       { :key => 'audible_bell',                :default => false,

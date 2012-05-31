@@ -158,6 +158,7 @@ class BTerm
     end
 
     read_config
+    load_modules
 
     @terminals = []
 
@@ -254,6 +255,8 @@ private
 
       file.write "\n"
       file.write "hotkeys_custom:\n"
+      file.write "  # the code is ruby code. You can add your own modules\n"
+      file.write "  # in ~/.bterm directory.\n"
       @hotkeys_custom.each do |h|
         file.write "\n"
         file.write "  - hotkey: " + h[:event] + "\n"
@@ -342,6 +345,31 @@ private
     if not config['matches'].nil?
       @matches[:rules] = config['matches']['rules'] if not config['matches']['rules'].nil?
       @matches[:event] = config['matches']['event'] if not config['matches']['event'].nil?
+    end
+  end
+
+  def load_modules
+    dirname = ENV['HOME'] + '/.bterm'
+
+    # Directory + example
+    if not File.exist? dirname
+      Dir.mkdir dirname
+      f =File.open dirname + '/example.rb', 'w'
+      f.write "# Something useful for the custom hotkeys\n"
+      f.write "def process_exec(cmd)\n  job = fork do\n   exec cmd\n  end\n\n  Process.detach job\nend\n\n"
+      f.write "def terminal_new(cmd = nil)\n  @@bterm.terminal_new\nend\n\n"
+      f.close
+    end
+
+    # Let's load the modules
+    d = Dir.open dirname
+    while file = d.read do
+      next if file.start_with? '.'
+      begin
+        require dirname + '/' + file
+      rescue
+        puts "Error loading " + dirname + '/' + file
+      end
     end
   end
 
@@ -639,19 +667,6 @@ class Notification
 
     false
   end
-end
-
-# Something useful for the custom hotkeys
-def process_exec(cmd)
-  job = fork do
-    exec cmd
-  end
-
-  Process.detach job
-end
-
-def terminal_new(cmd = nil)
-  @@bterm.terminal_new
 end
 
 # Let's start!

@@ -33,6 +33,12 @@ class BTerm
 
   def initialize
     @configuration = [
+      { :key => 'cwd',                         :default => "previous", :internal => true,
+        :func => 'set_cwd',                    :type => :string,
+        :msg => "The current work directory for the new terminal.\n" +
+                "It can be: 'previous' (the last path in the previous terminal),\n" +
+                "           'home' (your home directory),\n" +
+                "           '/a/custom/path'.\n" },
       { :key => 'audible_bell',                :default => false,
         :func => 'set_audible_bell',           :type => :boolean,
         :msg => "Controls whether or not the terminal will beep when\n" +
@@ -177,10 +183,10 @@ class BTerm
 
   def terminal_new(cmd = nil)
     terminal = Vte::Terminal.new
-    @terminals.push terminal
+    @terminals.push({ :terminal => terminal, :pid => 0, :cwd => nil })
 
     terminal.signal_connect("child-exited") do |widget|
-      terminal_kill widget
+      terminal_kill terminal_pos widget
     end
 
     terminal.signal_connect("window-title-changed") do |widget|
@@ -208,13 +214,19 @@ class BTerm
       button_pressed widget, event
     end
 
-    if (cmd == nil)
-      terminal.fork_command()
-    else
+    options = {}
+
+    if not @terminals.last[:cwd].nil?
+      options[:working_directory] = @terminals.last[:cwd]
+    end
+
+    if not cmd.nil?
       argv = []
       cmd.split(' ').each do |c| argv.push c.strip end
-      terminal.fork_command({ :argv => argv })
+      options[:argv] = argv
     end
+
+    @terminals.last[:pid] = terminal.fork_command options
 
     terminal.show
 
@@ -458,7 +470,7 @@ private
     terminal = @window.children[0] if terminal.nil?
 
     @terminals.each_with_index do |t, pos|
-      return pos if t == terminal
+      return pos if t[:terminal] == terminal
     end
 
     return 0
@@ -490,13 +502,12 @@ private
 
   # close
   def terminal_close
-    terminal_kill @terminals[terminal_pos]
+    terminal_kill terminal_pos
   end
 
   # real kill
-  def terminal_kill(terminal)
-    pos = terminal_pos terminal
-    @terminals.delete(terminal)
+  def terminal_kill(pos)
+    @terminals.delete_at(pos)
 
     if @terminals.empty?
       destroy
@@ -516,17 +527,17 @@ private
     # Notification
     @notification.show((pos + 1).to_s + ' of ' + @terminals.length.to_s)
 
-    @window.add @terminals[pos]
-    @terminals[pos].grab_focus
+    @window.add @terminals[pos][:terminal]
+    @terminals[pos][:terminal].grab_focus
   end
 
   def terminal_copy
-    terminal = @terminals[terminal_pos]
+    terminal = @terminals[terminal_pos][:terminal]
     terminal.copy_clipboard if terminal.has_selection?
   end
 
   def terminal_paste
-    terminal = @terminals[terminal_pos]
+    terminal = @terminals[terminal_pos][:terminal]
     terminal.paste_clipboard
   end
 
@@ -559,6 +570,33 @@ private
   end
 
   # Custom configuration
+
+  def set_cwd(terminal, what)
+    cwd = nil
+
+    case what
+      when 'home' then
+        cwd = ENV['HOME']
+
+      when 'previous' then
+        if @window.children.length > 0
+          cwd = get_path @terminals[terminal_pos][:pid]
+        end
+
+      else
+        cwd = what
+    end
+
+    @terminals.last[:cwd] = cwd
+  end
+
+  def get_path(pid)
+    begin
+      return File.readlink("/proc/#{pid}/cwd")
+    rescue
+      return nil
+    end
+  end
 
   def set_colors(terminal, what)
     colors = []

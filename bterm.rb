@@ -507,6 +507,7 @@ private
 
   # real kill
   def terminal_kill(pos)
+    @terminals[pos][:terminal].destroy
     @terminals.delete_at(pos)
 
     if @terminals.empty?

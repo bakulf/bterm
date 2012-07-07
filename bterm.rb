@@ -160,7 +160,7 @@ class BTerm
 
     @matches = { :rules => [], :event => 'ctrl 1',
                  :msg => "Open the specified application, when this event is triggered.\n" +
-                         "1 means mouse button 1, 2 button 2... ctrl and shift are supported" }
+                         "1 means mouse button 1, 2 button 2 (3 is the right one)... ctrl and shift are supported" }
     TERMINAL_MATCH_EXPRS.each do |expr|
       @matches[:rules].push({ :regexp => expr, :app => 'gnome-open' })
     end
@@ -174,7 +174,7 @@ class BTerm
     create_hotkeys
     create_notification
 
-    terminal_new
+    terminal_new ARGV
   end
 
   def run
@@ -220,10 +220,15 @@ class BTerm
       options[:working_directory] = @terminals.last[:cwd]
     end
 
-    if not cmd.nil?
+    # String
+    if cmd.is_a? String and not cmd.empty?
       argv = []
       cmd.split(' ').each do |c| argv.push c.strip end
       options[:argv] = argv
+
+    # Array
+    elsif cmd.is_a? Array and not cmd.empty?
+      options[:argv] = cmd
     end
 
     @terminals.last[:pid] = terminal.fork_command options

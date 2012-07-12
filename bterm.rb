@@ -588,7 +588,7 @@ private
       return
     end
 
-    @terminals = @detached_terminals.dup
+    @terminals += @detached_terminals.dup
     @detached_terminals = []
     terminal_show 0
 

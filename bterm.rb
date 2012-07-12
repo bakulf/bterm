@@ -138,12 +138,14 @@ class BTerm
     ]
 
     @hotkeys = [
-      { :key => 'new_terminal',   :value => 'ctrl shift T',     :func => 'terminal_new'   },
-      { :key => 'prev_terminal',  :value => 'ctrl shift Left',  :func => 'terminal_prev'  },
-      { :key => 'next_terminal',  :value => 'ctrl shift Right', :func => 'terminal_next'  },
-      { :key => 'close_terminal', :value => 'ctrl shift W',     :func => 'terminal_close' },
-      { :key => 'copy',           :value => 'ctrl shift C',     :func => 'terminal_copy'  },
-      { :key => 'paste',          :value => 'ctrl shift V',     :func => 'terminal_paste' },
+      { :key => 'new_terminal',   :value => 'ctrl shift T',     :func => 'terminal_new'    },
+      { :key => 'prev_terminal',  :value => 'ctrl shift Left',  :func => 'terminal_prev'   },
+      { :key => 'next_terminal',  :value => 'ctrl shift Right', :func => 'terminal_next'   },
+      { :key => 'close_terminal', :value => 'ctrl shift W',     :func => 'terminal_close'  },
+      { :key => 'copy',           :value => 'ctrl shift C',     :func => 'terminal_copy'   },
+      { :key => 'paste',          :value => 'ctrl shift V',     :func => 'terminal_paste'  },
+      { :key => 'detach',         :value => 'ctrl shift D',     :func => 'terminal_detach' },
+      { :key => 'attach',         :value => 'ctrl shift A',     :func => 'terminal_attach' },
     ]
 
     @hotkeys_custom = [
@@ -169,6 +171,7 @@ class BTerm
     load_modules
 
     @terminals = []
+    @detached_terminals = []
 
     create_window
     create_hotkeys
@@ -470,6 +473,20 @@ private
 
   #### TERMINALS ####
 
+  def notification(pos = nil)
+    msg = ''
+
+    if pos.nil?
+      msg = 'nothing more than this...'
+    else
+      msg = (pos + 1).to_s + ' of ' + @terminals.length.to_s
+    end
+
+    msg += "\n" + @detached_terminals.length.to_s + ' detached' if not @detached_terminals.empty?
+
+    @notification.show msg
+  end
+
   # Just an helper
   def terminal_pos(terminal = nil)
     terminal = @window.children[0] if terminal.nil?
@@ -484,7 +501,7 @@ private
   # prev
   def terminal_prev
     if @terminals.length <= 1
-      @notification.show('nothing more than this...')
+      notification
       return
     end
 
@@ -496,7 +513,7 @@ private
   # next
   def terminal_next
     if @terminals.length <= 1
-      @notification.show('nothing more than this...')
+      notification
       return
     end
 
@@ -515,8 +532,15 @@ private
     @terminals[pos][:terminal].destroy
     @terminals.delete_at(pos)
 
-    if @terminals.empty?
+    # we can quit
+    if @terminals.empty? and @detached_terminals.empty?
       destroy
+
+    # something detached...
+    elsif @terminals.empty?
+      terminal_attach
+
+    # let's show the next one:
     else
       terminal_show pos
     end
@@ -531,7 +555,7 @@ private
     pos = @terminals.length - 1 if pos >= @terminals.length
 
     # Notification
-    @notification.show((pos + 1).to_s + ' of ' + @terminals.length.to_s)
+    notification pos
 
     @window.add @terminals[pos][:terminal]
     @terminals[pos][:terminal].grab_focus
@@ -545,6 +569,30 @@ private
   def terminal_paste
     terminal = @terminals[terminal_pos][:terminal]
     terminal.paste_clipboard
+  end
+
+  def terminal_detach
+    pos = terminal_pos
+    @detached_terminals.push(@terminals[pos])
+    @terminals.delete_at pos
+
+    terminal_new if @terminals.empty?
+    terminal_show pos
+
+    @notification.show('terminal detached')
+  end
+
+  def terminal_attach
+    if @detached_terminals.empty?
+      @notification.show('nothing to attach')
+      return
+    end
+
+    @terminals = @detached_terminals.dup
+    @detached_terminals = []
+    terminal_show 0
+
+    @notification.show('detached terminal shown...')
   end
 
   def update_window_title(title)
@@ -571,7 +619,7 @@ private
 
     if event.button == button and event.state == mask
       string, tag = string
-      process_exec @matches[:rules][tag]['app'] + " " + string
+      process_exec @matches[:rules][tag]['app'] + ' ' + string
     end
   end
 
@@ -660,6 +708,7 @@ class Notification
     @window.window_position = Gtk::Window::POS_CENTER_ALWAYS
 
     @label = Gtk::Label.new
+    @label.justify = Gtk::Justification::CENTER
     @window.add @label
 
     @window.signal_connect('expose-event') do expose end

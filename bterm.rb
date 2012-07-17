@@ -473,7 +473,7 @@ private
 
   #### TERMINALS ####
 
-  def notification(pos = nil)
+  def notify(pos = nil)
     msg = ''
 
     if pos.nil?
@@ -501,7 +501,7 @@ private
   # prev
   def terminal_prev
     if @terminals.length <= 1
-      notification
+      notify
       return
     end
 
@@ -513,7 +513,7 @@ private
   # next
   def terminal_next
     if @terminals.length <= 1
-      notification
+      notify
       return
     end
 
@@ -555,7 +555,7 @@ private
     pos = @terminals.length - 1 if pos >= @terminals.length
 
     # Notification
-    notification pos
+    notify pos
 
     @window.add @terminals[pos][:terminal]
     @terminals[pos][:terminal].grab_focus

@@ -588,9 +588,10 @@ private
       return
     end
 
+    last = @terminals.length
     @terminals += @detached_terminals.dup
     @detached_terminals = []
-    terminal_show 0
+    terminal_show last
 
     @notification.show('detached terminal shown...')
   end

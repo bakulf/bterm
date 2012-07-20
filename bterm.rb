@@ -454,6 +454,12 @@ private
         mask |= Gdk::Window::CONTROL_MASK
       elsif p.downcase == 'shift'
         mask |= Gdk::Window::SHIFT_MASK
+      elsif p.downcase == 'mod1'
+        mask |= Gdk::Window::MOD1_MASK
+      elsif p.downcase == 'mod2'
+        mask |= Gdk::Window::MOD2_MASK
+      elsif p.downcase == 'mod3'
+        mask |= Gdk::Window::MOD3_MASK
       else
         char = Gdk::Keyval.from_name(p)
       end

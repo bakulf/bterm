@@ -259,12 +259,16 @@ private
         end
 
         file.write "  " + c[:key] + ": "
-        case c[:type]
-          when :boolean: file.write c[:default].to_s
-          when :color:   file.write '"' + c[:default] + '"'
-          when :float:   file.write c[:default].to_s
-          when :integer: file.write c[:default].to_s
-          when :string:  file.write '"' + c[:default].to_s + '"'
+        if c[:type] == :boolean
+          file.write c[:default].to_s
+        elsif c[:type] == :color
+          file.write '"' + c[:default] + '"'
+        elsif c[:type] == :float
+          file.write c[:default].to_s
+        elsif c[:type] == :integer
+          file.write c[:default].to_s
+        elsif c[:type] == :string
+          file.write '"' + c[:default].to_s + '"'
         end
         file.write "\n"
       end
@@ -328,17 +332,16 @@ private
     @configuration.each do |c|
       next if @settings.nil? or @settings[c[:key]].nil?
 
-      case c[:type]
-
-         when :boolean: @settings[c[:key]] = @settings[c[:key]] ? true : false
-
-         when :color:   @settings[c[:key]] = Gdk::Color.parse(@settings[c[:key]])
-
-         when :float:   @settings[c[:key]] = @settings[c[:key]].to_f
-
-         when :integer: @settings[c[:key]] = @settings[c[:key]].to_i
-
-         when :string:  # Nothing
+      if c[:type] == :boolean
+        @settings[c[:key]] = @settings[c[:key]] ? true : false
+      elsif c[:type] == :color
+        @settings[c[:key]] = Gdk::Color.parse(@settings[c[:key]])
+      elsif c[:type] == :float
+        @settings[c[:key]] = @settings[c[:key]].to_f
+      elsif c[:type] == :integer
+         @settings[c[:key]] = @settings[c[:key]].to_i
+      elsif c[:type] == :string
+        # Nothing
       end
     end
 

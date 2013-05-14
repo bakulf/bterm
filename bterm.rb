@@ -557,14 +557,19 @@ private
 
   # show the selected terminal
   def terminal_show(pos)
-    if @window.children.length > 0
-      @window.remove @window.children[0]
-    end
-
     pos = @terminals.length - 1 if pos >= @terminals.length
 
     # Notification
     notify pos
+
+    if @window.children.length and
+       @window.children[0] == @terminals[pos][:terminal]
+      return
+    end
+
+    if @window.children.length > 0
+      @window.remove @window.children[0]
+    end
 
     @window.add @terminals[pos][:terminal]
     @terminals[pos][:terminal].grab_focus

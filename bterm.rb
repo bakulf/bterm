@@ -189,7 +189,9 @@ class BTerm
     @terminals.push({ :terminal => terminal, :pid => 0, :cwd => nil })
 
     terminal.signal_connect("child-exited") do |widget|
-      terminal_kill terminal_pos widget
+      pos = terminal_pos widget
+      terminal_kill pos if pos != -1
+      terminal_kill_detached widget
     end
 
     terminal.signal_connect("window-title-changed") do |widget|
@@ -504,7 +506,7 @@ private
       return pos if t[:terminal] == terminal
     end
 
-    return 0
+    return -1
   end
 
   # prev
@@ -583,6 +585,16 @@ private
   def terminal_paste
     terminal = @terminals[terminal_pos][:terminal]
     terminal.paste_clipboard
+  end
+
+  def terminal_kill_detached(terminal)
+    @detached_terminals.each_with_index do |t, pos|
+      if t[:terminal] == terminal
+        terminal.destroy
+        @detached_terminals.delete_at pos
+        return
+      end
+    end
   end
 
   def terminal_detach

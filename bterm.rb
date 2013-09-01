@@ -31,7 +31,7 @@ TERMINAL_MATCH_EXPRS = [
 class BTerm
   attr_accessor :notification
 
-  def initialize
+  def init
     @configuration = [
       { :key => 'cwd',                         :default => "previous", :internal => true,
         :func => 'set_cwd',                    :type => :string,
@@ -168,6 +168,11 @@ class BTerm
     end
 
     read_config
+
+    @hooks = { :terminal_new => [],
+               :terminal_close => [],
+               :terminal_show => [] }
+
     load_modules
 
     @terminals = []
@@ -238,9 +243,22 @@ class BTerm
 
     @terminals.last[:pid] = terminal.fork_command options
 
+    @hooks[:terminal_new].each do |cb|
+      cb.call(@terminals.last[:terminal], @terminals.last[:pid])
+    end
+
     terminal.show
 
     terminal_show @terminals.length - 1
+  end
+
+  def register_hooks(hook, cb)
+    if not @hooks.include? hook
+      puts "Hook #{hook} doesn't exist."
+      return
+    end
+
+    @hooks[hook].push cb
   end
 
 private
@@ -540,6 +558,10 @@ private
 
   # real kill
   def terminal_kill(pos)
+    @hooks[:terminal_close].each do |cb|
+      cb.call(@terminals[pos][:terminal], @terminals[pos][:pid])
+    end
+
     @terminals[pos][:terminal].destroy
     @terminals.delete_at(pos)
 
@@ -575,6 +597,10 @@ private
 
     @window.add @terminals[pos][:terminal]
     @terminals[pos][:terminal].grab_focus
+
+    @hooks[:terminal_show].each do |cb|
+      cb.call(@terminals[pos][:terminal], @terminals[pos][:pid])
+    end
   end
 
   def terminal_copy
@@ -800,5 +826,6 @@ end
 # Let's start!
 
 @@bterm = BTerm.new
+@@bterm.init
 @@bterm.run
 Gtk.main

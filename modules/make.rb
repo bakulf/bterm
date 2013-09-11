@@ -41,7 +41,10 @@ def is_make_running(pid, what)
   return false if number != true
 
   make = File.readlink("/proc/#{what}/exe").end_with? 'make' rescue false
-  return false if make != true
+  params = File.read("/proc/#{what}/cmdline").unpack('Z*Z*Z*')
+  mach = params[0] == 'python' and params[2] == 'build' and params[1].split('/').last == 'mach'
+
+  return false if !make and !mach
 
   file = File.new("/proc/#{what}/status", 'r')
   while line = file.gets do

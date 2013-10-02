@@ -36,37 +36,41 @@ def terminal_close(terminal, pid)
   @terminals.delete(pid)
 end
 
-def is_make_running(pid, what)
-  number = true if Float(what) rescue false
-  return false if number != true
+def check_make(pid)
+  number = true if Float(pid) rescue false
+  return [] if number != true
 
-  make = File.readlink("/proc/#{what}/exe").end_with? 'make' rescue false
-  params = File.read("/proc/#{what}/cmdline").unpack('Z*Z*Z*')
-  mach = params[0] == 'python' and params[2] == 'build' and params[1].split('/').last == 'mach'
+  make = File.readlink("/proc/#{pid}/exe").end_with? 'make' rescue false
+  params = File.read("/proc/#{pid}/cmdline").unpack('Z*Z*Z*')
+  mach = (params[0] == 'python' and params[2] == 'build' and params[1].split('/').last == 'mach')
 
-  return false if !make and !mach
+  return [] if make != true and mach == false
 
-  file = File.new("/proc/#{what}/status", 'r')
+  return [ pid ] + check_ppid(pid)
+end
+
+def check_ppid(pid)
+  file = File.new("/proc/#{pid}/status", 'r')
   while line = file.gets do
     if line.start_with? 'PPid:'
-      return line.split[1].to_i == pid
+      parent = line.split[1].to_i
+      return [] if parent == 0
+      return [ parent ] + check_pid(parent)
     end
   end
 
-  false
+  []
 end
 
 GLib::Timeout.add 1000 do
-  @terminals.each do |pid, data|
-    compiling = false
+  valid_pids = []
+  Dir.entries('/proc').each do |dir|
+    pids = check_make dir rescue false
+    valid_pids += pids if pids.is_a? Array
+  end
 
-    Dir.entries('/proc').each do |dir|
-      running = is_make_running pid, dir rescue false
-      if running
-        compiling = true
-        break
-      end
-    end
+  @terminals.each do |pid, data|
+    compiling = valid_pids.include? pid
 
     if compiling != data[:compiling]
       data[:compiling] = compiling

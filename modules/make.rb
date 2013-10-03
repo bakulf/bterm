@@ -37,14 +37,24 @@ def terminal_close(terminal, pid)
 end
 
 def check_make(pid)
-  number = true if Float(pid) rescue false
-  return [] if number != true
+  number = false
+  make = false
 
-  make = File.readlink("/proc/#{pid}/exe").end_with? 'make' rescue false
-  params = File.read("/proc/#{pid}/cmdline").unpack('Z*Z*Z*')
-  mach = (params[0] == 'python' and params[2] == 'build' and params[1].split('/').last == 'mach')
+  begin
+    if Float(pid)
+      number = true
+    end
+  rescue
+  end
 
-  return [] if make != true and mach == false
+  return [] unless number
+
+  begin
+    make = File.readlink("/proc/#{pid}/exe").end_with? 'make'
+  rescue
+  end
+
+  return [] unless make
 
   return [ pid ] + check_ppid(pid)
 end
@@ -55,7 +65,7 @@ def check_ppid(pid)
     if line.start_with? 'PPid:'
       parent = line.split[1].to_i
       return [] if parent == 0
-      return [ parent ] + check_pid(parent)
+      return [ parent ] + check_ppid(parent)
     end
   end
 
@@ -65,7 +75,7 @@ end
 GLib::Timeout.add 1000 do
   valid_pids = []
   Dir.entries('/proc').each do |dir|
-    pids = check_make dir rescue false
+    pids = check_make dir
     valid_pids += pids if pids.is_a? Array
   end
 

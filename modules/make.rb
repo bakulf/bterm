@@ -61,7 +61,15 @@ end
 
 def check_ppid(pid)
   file = File.new("/proc/#{pid}/status", 'r')
-  while line = file.gets do
+  while true do
+    begin
+      line = file.gets
+    rescue
+      return []
+    end
+
+    break if line.nil?
+
     if line.start_with? 'PPid:'
       parent = line.split[1].to_i
       return [] if parent == 0
@@ -72,7 +80,7 @@ def check_ppid(pid)
   []
 end
 
-GLib::Timeout.add 1000 do
+GLib::Timeout.add 3000 do
   valid_pids = []
   Dir.entries('/proc').each do |dir|
     pids = check_make dir

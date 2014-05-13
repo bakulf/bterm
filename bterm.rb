@@ -30,6 +30,7 @@ TERMINAL_MATCH_EXPRS = [
 # Here, my terminal
 class BTerm
   attr_accessor :notification
+  attr_accessor :mutex
 
   def init
     @configuration = [
@@ -173,6 +174,7 @@ class BTerm
                :terminal_close => [],
                :terminal_show => [] }
 
+    setup_notifications
     load_modules
 
     @terminals = []
@@ -259,6 +261,15 @@ class BTerm
     end
 
     @hooks[hook].push cb
+  end
+
+  def append_notification(what)
+    @notifications.push what
+  end
+
+  def terminal_current
+    pos = terminal_pos
+    return @terminals[pos]
   end
 
 private
@@ -742,6 +753,21 @@ private
       terminal.set_delete_binding Vte::Terminal::EraseBinding::TTY
     end
   end
+
+  def setup_notifications
+    @mutex = Mutex.new
+    @notifications = []
+
+    GLib::Timeout.add 200 do
+      @mutex.lock
+      @notifications.each do |n|
+        @notification.show n
+      end
+      @notifications.clear
+      @mutex.unlock
+    end
+  end
+
 end
 
 # Notification class
@@ -810,7 +836,7 @@ class Notification
     end
   end
 
-  private
+private
   def expose
     c = @window.window.create_cairo_context
 

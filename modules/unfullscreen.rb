@@ -1,6 +1,4 @@
 # Set the bterm to half width
-# change between width and height require a double click
-# of key combination
 def unfullscreen_height
   # At the moment this is the best way i found 
   # to access @window object. With the hook :terminal_new 
@@ -27,8 +25,6 @@ def unfullscreen_height
 end
 
 # Set the bterm to half height
-# change between width and height require a double click
-# of key combination
 def unfullscreen_width
   # At the moment this is the best way i found 
   # to access @window object. With the hook :terminal_new 

@@ -12,14 +12,18 @@ def unfullscreen_height
 
   # Resize the width of the window
   width = window.screen.width
-  height = window.screen.height / 2
+  height = window.screen.height
   window.unfullscreen
 
   # We need to change the minimum size of the window
-  # then we can resize to a smaller size 
-  window.set_size_request(width, height)
+  min_width = width / 4
+  min_height = height / 4
+  window.set_size_request(min_width, min_height)
+
+  # then we can resize to a smaller size
+  new_height = height / 2
   window.move(0, 0)
-  window.resize(width, height)
+  window.resize(width, new_height)
 end
 
 # Set the bterm to half height
@@ -35,15 +39,19 @@ def unfullscreen_width
   window.set_resizable(true)
 
   # Resize the width of the window
-  width = window.screen.width / 2
+  width = window.screen.width
   height = window.screen.height
   window.unfullscreen
 
   # We need to change the minimum size of the window
-  # then we can resize to a smaller size 
-  window.set_size_request(width, height)
+  min_width = width / 4
+  min_height = height / 4
+  window.set_size_request(min_width, min_height)
+
+  # then we can resize to a smaller size
+  new_width = width / 2 
   window.move(0, 0)
-  window.resize(width, height)
+  window.resize( new_width , height)
 end
 
 

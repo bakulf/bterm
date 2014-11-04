@@ -63,10 +63,12 @@ def fullscreen
   window.set_resizable(false)
 
   # Restore original width size of the window
-  width = window.screen.width * 2
+  width = window.screen.width
   height = window.screen.height
 
   # Restore the original dimensions and fullscreen
+  min_width = width * 4
+  min_height = height * 4
   window.set_size_request(width, height)
   window.move(0,0)
   window.fullscreen

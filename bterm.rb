@@ -172,7 +172,8 @@ class BTerm
 
     @hooks = { :terminal_new => [],
                :terminal_close => [],
-               :terminal_show => [] }
+               :terminal_show => [],
+               :create_window => [], }
 
     setup_notifications
     load_modules
@@ -255,6 +256,7 @@ class BTerm
   end
 
   def register_hooks(hook, cb)
+
     if not @hooks.include? hook
       puts "Hook #{hook} doesn't exist."
       return
@@ -446,6 +448,11 @@ private
     @window.signal_connect("focus-out-event") do |widget, data|
       @notification.hide
     end
+
+    @hooks[:create_window].each do |cb|
+      cb.call(@window)
+    end
+
   end
 
   # Configuration of the hotkeys

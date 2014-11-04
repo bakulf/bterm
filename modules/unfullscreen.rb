@@ -11,12 +11,15 @@ def unfullscreen_height
   # Resize the width of the window
   width = window.screen.width
   height = window.screen.height
-  window.unfullscreen
 
   # We need to change the minimum size of the window
   min_width = width / 4
   min_height = height / 4
   window.set_size_request(min_width, min_height)
+
+  #puts "height: #{width} / #{height}"
+
+  window.unfullscreen
 
   # then we can resize to a smaller size
   new_height = height / 2
@@ -37,12 +40,15 @@ def unfullscreen_width
   # Resize the width of the window
   width = window.screen.width
   height = window.screen.height
-  window.unfullscreen
 
   # We need to change the minimum size of the window
   min_width = width / 4
   min_height = height / 4
   window.set_size_request(min_width, min_height)
+
+  #puts "width : #{width} / #{height}"
+
+  window.unfullscreen
 
   # then we can resize to a smaller size
   new_width = width / 2 
@@ -59,18 +65,12 @@ def fullscreen
   # i can access the terminal object but not the @window
   window = @@bterm.instance_variable_get(:@window)
 
-  window.decorated = false
-  window.set_resizable(false)
-
-  # Restore original width size of the window
-  width = window.screen.width
-  height = window.screen.height
+  #puts "fullscreen : #{width} / #{height}"
 
   # Restore the original dimensions and fullscreen
-  min_width = width * 4
-  min_height = height * 4
-  window.set_size_request(width, height)
+  window.set_default_size(-1, -1)
   window.move(0,0)
   window.fullscreen
+  window.decorated = false
 end
 

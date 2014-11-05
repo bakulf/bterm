@@ -172,7 +172,8 @@ class BTerm
 
     @hooks = { :terminal_new => [],
                :terminal_close => [],
-               :terminal_show => [] }
+               :terminal_show => [],
+               :window_created => [], }
 
     setup_notifications
     load_modules
@@ -446,6 +447,11 @@ private
     @window.signal_connect("focus-out-event") do |widget, data|
       @notification.hide
     end
+
+    @hooks[:window_created].each do |cb|
+      cb.call(@window)
+    end
+
   end
 
   # Configuration of the hotkeys

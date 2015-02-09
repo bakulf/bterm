@@ -674,20 +674,20 @@ private
     string = terminal.match_check(event.x / terminal.char_width, event.y / terminal.char_height)
     return if string.nil? or string.empty?
 
-    button = 0
-    mask = 0
+    match = true
     @matches[:event].split(' ').each do |p|
+      break if not match
       p.strip!
       if p.downcase == 'ctrl'
-        mask |= Gdk::Window::CONTROL_MASK
+        match = event.state.control_mask?
       elsif p.downcase == 'shift'
-        mask |= Gdk::Window::SHIFT_MASK
+        match = event.state.shift_mask?
       else
-        button = p.to_i
+        match = event.button == p.to_i
       end
     end
 
-    if event.button == button and event.state == mask
+    if match
       string, tag = string
       process_exec @matches[:rules][tag]['app'] + ' ' + string
     end

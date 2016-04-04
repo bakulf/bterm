@@ -173,7 +173,8 @@ class BTerm
     @hooks = { :terminal_new => [],
                :terminal_close => [],
                :terminal_show => [],
-               :window_created => [], }
+               :window_created => [],
+               :notification_received => [] }
 
     setup_notifications
     load_modules
@@ -774,7 +775,16 @@ private
     GLib::Timeout.add 200 do
       @mutex.lock
       @notifications.each do |n|
-        @notification.show n
+        if n.start_with? 'notify '
+          @notification.show n[7..-1]
+        elsif n.start_with? 'show'
+          @window.show
+          @window.present
+        else
+          @hooks[:notification_received].each do |cb|
+            cb.call(n)
+          end
+        end
       end
       @notifications.clear
       @mutex.unlock

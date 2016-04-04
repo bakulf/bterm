@@ -2,6 +2,20 @@ require 'socket'
 
 file = '/tmp/bterm.socket'
 
+if File.exists? file
+  begin
+    socket = UNIXSocket.open file
+  rescue
+    socket = -1
+  end
+
+  if socket != -1
+    socket.write "show"
+    socket.close
+    exit
+  end
+end
+
 thr = Thread.new do
   File.unlink file if File.exists? file
   socket = UNIXServer.open file

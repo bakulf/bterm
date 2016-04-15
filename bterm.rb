@@ -7,6 +7,7 @@
 require "gtk2"
 require "vte.so"
 require "yaml"
+require "shellwords"
 
 # regular expressions to highlight links in terminal. This code was
 # lovely stolen from the great gnome-terminal project, thank you =)
@@ -697,7 +698,7 @@ private
 
     if match
       string, tag = string
-      process_exec @matches[:rules][tag]['app'] + ' ' + string
+      process_exec @matches[:rules][tag]['app'] + ' ' + Shellwords.escape(string)
     end
   end
 

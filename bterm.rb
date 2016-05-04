@@ -92,8 +92,11 @@ class BTerm
                 "color palette, bold versions of the eight color palette,\n" +
                 "and a dim version of the the eight color palette." },
       # default_colors ?!?
-      # cursor_shape?!?
-      { :key => 'cursor_blink_mode',           :default => "off",
+      { :key => 'cursor_shape',                :default => "underline",
+        :func => 'set_cursor_shape',           :type => :string, :internal => true,
+        :msg => "An enumerated type which can be used to indicate what should the\n" +
+                "terminal draw at the cursor position. (values: underline, block, I-beam)." },
+      { :key => 'cursor_blink_mode',           :default => "on",
         :func => 'set_cursor_blink_mode',      :type => :string, :internal => true,
         :msg => "Sets whether or not the cursor will blink (values: on, off, system)." },
       { :key => 'scrollback_lines',            :default => 1024,
@@ -179,6 +182,7 @@ class BTerm
 
   def terminal_new(cmd = nil)
     terminal = Vte::Terminal.new
+    terminal.set_encoding "UTF-8"
     @terminals.push({ :terminal => terminal, :pid => 0, :cwd => nil })
 
     terminal.signal_connect("child-exited") do |widget|
@@ -726,6 +730,16 @@ private
 
     terminal.set_colors(@settings['color_foreground'],
                         @settings['color_background'], colors);
+  end
+
+  def set_cursor_shape(terminal, what)
+    if what == 'underline'
+      terminal.set_cursor_shape Vte::CursorShape::UNDERLINE
+    elsif what == 'block'
+      terminal.set_cursor_shape Vte::CursorShape::BLOCK
+    elsif what == 'I-beam'
+      terminal.set_cursor_shape Vte::CursorShape::IBEAM
+    end
   end
 
   def set_cursor_blink_mode(terminal, what)

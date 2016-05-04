@@ -4,8 +4,7 @@
   bterm - my terminal
 =end
 
-require "gtk2"
-require "vte.so"
+require "vte3"
 require "yaml"
 require "shellwords"
 
@@ -45,33 +44,20 @@ class BTerm
         :func => 'set_audible_bell',           :type => :boolean,
         :msg => "Controls whether or not the terminal will beep when\n" +
                 "the child outputs the \"bl\" sequence." },
-      { :key => 'visible_bell',                :default => false,
-        :func => 'set_visible_bell',           :type => :boolean,
-        :msg => "Controls whether or not the terminal will present a visible\n" +
-                "bell to the user when the child outputs the \"bl\" sequence.\n" +
-                "The terminal will clear itself to the default foreground\n" +
-                "color and then repaint itself." },
-      { :key => 'scroll_background',           :default => false,
-        :func => 'set_scroll_background',      :type => :boolean,
-        :msg => "Controls whether or not the terminal will scroll the\n" +
-                "background image (if one is set) when the text in the window\n" +
-                "must be scrolled." },
+      { :key => 'allow_bold',                  :default => true,
+        :func => 'set_allow_bold',             :type => :boolean,
+        :msg => "Controls whether or not the terminal will attempt to draw bold\n" +
+                "text by repainting text with a different offset." },
       { :key => 'scroll_on_output',            :default => false,
         :func => 'set_scroll_on_output',       :type => :boolean,
         :msg => "Controls whether or not the terminal will forcibly scroll to\n" +
                 "the bottom of the viewable history when the new data is\n" +
                 "received from the child." },
-      { :key => 'scrollback_lines',            :default => 1024,
-        :func => 'set_scrollback_lines',       :type => :integer,
-        :msg => "Sets the length of the scrollback buffer used by the terminal." },
       { :key => 'scroll_on_keystroke',         :default => true,
         :func => 'set_scroll_on_keystroke',    :type => :boolean,
         :msg => "Controls whether or not the terminal will forcibly scroll to\n" +
                 "the bottom of the viewable history when the user presses\n" +
                 "a key. Modifier keys do not trigger this behavior." },
-      { :key => 'color_dim',                   :default => "#ffffff",
-        :func => 'set_color_dim',              :type => :color,
-        :msg => "Sets the color used to draw dim text in the default foreground color." },
       { :key => 'color_bold',                  :default => "#ffffff",
         :func => 'set_color_bold',             :type => :color,
         :msg => "Sets the color used to draw bold text in the default foreground color." },
@@ -83,6 +69,21 @@ class BTerm
         :msg => "Sets the background color for text which does not have\n" +
                 "a specific background color assigned. Only has effect when\n" +
                 "no background image is set and when the terminal is not transparent." },
+      { :key => 'color_cursor',                :default => "#ffffff",
+        :func => 'set_color_cursor',           :type => :color,
+         :msg => "Sets the background color for text which is under the cursor." },
+      { :key => 'color_cursor_foreground',     :default => "#ffffff",
+        :func => 'set_color_cursor_foreground', :type => :color,
+        :msg => "Sets the foreground color for text which is under the cursor." },
+      { :key => 'color_highlight',             :default => "#00000f",
+        :func => 'set_color_highlight',        :type => :color,
+        :msg => "Sets the background color for text which is highlighted.\n" +
+                "If nil, highlighted text (which is usually highlighted because\n" +
+                "it is selected) will be drawn with foreground and background\n" +
+                "colors reversed." },
+      { :key => 'color_highlight_foreground',  :default => "#00000f",
+        :func => 'set_color_highlight_foreground', :type => :color,
+        :msg => "Sets the foregound color for text which is highlighted." },
       { :key => 'colors',                      :default => "#000000000000:#cccc00000000:#4e4e9a9a0606:#c4c4a0a00000:#34346565a4a4:#757550507b7b:#060698209a9a:#d3d3d7d7cfcf:#555557575353:#efef29292929:#8a8ae2e23434:#fcfce9e94f4f:#72729f9fcfcf:#adad7f7fa8a8:#3434e2e2e2e2:#eeeeeeeeecec", :internal => true,
         :func => 'set_colors',                 :type => :string,
         :msg => "The terminal widget uses a 28-color model comprised of\n" +
@@ -90,29 +91,18 @@ class BTerm
                 "foreground color, the dim foreground color, an eight\n" +
                 "color palette, bold versions of the eight color palette,\n" +
                 "and a dim version of the the eight color palette." },
-      { :key => 'color_cursor',                :default => "#ffffff",
-        :func => 'set_color_cursor',           :type => :color,
-         :msg => "Sets the background color for text which is under the cursor." },
-      { :key => 'color_highlight',             :default => "#00000f",
-        :func => 'set_color_highlight',        :type => :color,
-        :msg => "Sets the background color for text which is highlighted.\n" +
-                "If nil, highlighted text (which is usually highlighted because\n" +
-                "it is selected) will be drawn with foreground and background\n" +
-                "colors reversed." },
-      { :key => 'background_opacity',          :default => 0.95,
-        :func => 'set_background_opacity',     :type => :float,
-        :msg => "Sets the background opacity." },
-      { :key => 'background_transparent',      :default => false,
-        :func => 'set_background_transparent', :type => :boolean,
-        :msg => "Sets the terminal's background image to the pixmap stored in\n" +
-                "the root window, adjusted so that if there are no windows below\n" +
-                "your application, the widget will appear to be transparent." },
-      { :key => 'cursor_blinks',               :default => true,
-        :func => 'set_cursor_blinks',          :type => :boolean,
-        :msg => "Sets whether or not the cursor will blink." },
+      # default_colors ?!?
+      # cursor_shape?!?
+      { :key => 'cursor_blink_mode',           :default => "off",
+        :func => 'set_cursor_blink_mode',      :type => :string, :internal => true,
+        :msg => "Sets whether or not the cursor will blink (values: on, off, system)." },
+      { :key => 'scrollback_lines',            :default => 1024,
+        :func => 'set_scrollback_lines',       :type => :integer,
+        :msg => "Sets the length of the scrollback buffer used by the terminal." },
       { :key => 'font',                        :default => 'Monospace 11',
-        :func => 'set_font',                   :type => :string,
+        :func => 'set_font',                   :type => :font,
         :msg => "Sets the font used for rendering all text displayed by the terminal." },
+      # font-scale?!?
       { :key => 'backspace_binding',           :default => 'ASCII_DELETE',
         :func => 'set_backspace_binding',      :type => :string, :internal => true,
         :msg => "Modifies the terminal's backspace key binding, which controls\n" +
@@ -125,18 +115,11 @@ class BTerm
                 "what string or control sequence the terminal sends to its\n" +
                 "child when the user presses the delete key.\n" +
                 "ASCII_DELETE - ASCII_BACKSPACE - AUTO - DELETE_SEQUENCE - TTY" },
-      { :key => 'word_chars',                  :default => '-A-Za-z0-9,./?%&amp;#:_',
-        :func => 'set_word_chars',             :type => :string,
-        :msg => "When the user double-clicks to start selection, the terminal\n" +
-                "will extend the selection on word boundaries. It will treat\n" +
-                "characters included in spec as parts of words, and all other\n" +
-                "characters as word separators. Ranges of characters can be\n" +
-                "specified by separating them with a hyphen.\n" },
       { :key => 'mouse_autohide',              :default => 'true',
         :func => 'set_mouse_autohide',         :type => :boolean,
         :msg => "Changes the value of the terminal's mouse autohide setting.\n" +
                 "When autohiding is enabled, the mouse cursor will be hidden\n" +
-                "when the user presses a key and shown when the user moves the mouse." }
+                "when the user presses a key and shown when the user moves the mouse." },
     ]
 
     @hotkeys = [
@@ -220,8 +203,8 @@ class BTerm
 
     if @matches[:rules].is_a? Array
       @matches[:rules].each do |m|
-        tag = terminal.match_add m['regexp']
-        terminal.match_set_cursor tag, Gdk::Cursor::HAND2
+        tag = terminal.match_add_gregex GLib::Regex.new(m['regexp']), 0
+        terminal.match_set_cursor_type tag, Gdk::CursorType::HAND2
       end
     end
 
@@ -246,7 +229,7 @@ class BTerm
       options[:argv] = cmd
     end
 
-    @terminals.last[:pid] = terminal.fork_command options
+    @terminals.last[:pid] = terminal.spawn options
 
     @hooks[:terminal_new].each do |cb|
       cb.call(@terminals.last[:terminal], @terminals.last[:pid])
@@ -302,6 +285,8 @@ private
         elsif c[:type] == :integer
           file.write c[:default].to_s
         elsif c[:type] == :string
+          file.write '"' + c[:default].to_s + '"'
+        elsif c[:type] == :font
           file.write '"' + c[:default].to_s + '"'
         end
         file.write "\n"
@@ -369,11 +354,13 @@ private
       if c[:type] == :boolean
         @settings[c[:key]] = @settings[c[:key]] ? true : false
       elsif c[:type] == :color
-        @settings[c[:key]] = Gdk::Color.parse(@settings[c[:key]])
+        @settings[c[:key]] = Gdk::RGBA.parse(@settings[c[:key]])
       elsif c[:type] == :float
         @settings[c[:key]] = @settings[c[:key]].to_f
       elsif c[:type] == :integer
          @settings[c[:key]] = @settings[c[:key]].to_i
+      elsif c[:type] == :font
+         @settings[c[:key]] = Pango::FontDescription.new(@settings[c[:key]])
       elsif c[:type] == :string
         # Nothing
       end
@@ -438,14 +425,14 @@ private
     @window.fullscreen
     @window.decorated = false
 
-    colormap = @window.screen.rgba_colormap
-    @window.set_colormap @window.screen.rgba_colormap if not colormap.nil?
+    visual = @window.screen.rgba_visual
+    @window.set_visual @window.screen.rgba_visual if not visual.nil?
 
     @window.signal_connect("destroy") do |widget|
       Gtk.main_quit
     end
 
-    @window.set_events(Gdk::Event::FOCUS_CHANGE_MASK)
+    @window.set_events(Gdk::EventMask::FOCUS_CHANGE_MASK)
     @window.signal_connect("focus-out-event") do |widget, data|
       @notification.hide
     end
@@ -458,13 +445,13 @@ private
 
   # Configuration of the hotkeys
   def create_hotkeys
-    ag = Gtk::AccelGroup.new
+    @ag = Gtk::AccelGroup.new
 
     @hotkeys.each do |h|
       mask, char = parse_hotkey h[:value]
 
       if char
-        ag.connect(char, mask, Gtk::ACCEL_VISIBLE) do
+        @ag.connect(char, mask, Gtk::AccelFlags::VISIBLE) do
           send h[:func]
           true
         end
@@ -475,14 +462,14 @@ private
       mask, char = parse_hotkey h[:event]
 
       if char
-        ag.connect(char, mask, Gtk::ACCEL_VISIBLE) do
+        @ag.connect(char, mask, Gtk::AccelFlags::VISIBLE) do
           eval(h[:code])
           true
         end
       end
     end
 
-    @window.add_accel_group(ag)
+    @window.add_accel_group(@ag)
   end
 
   def set_mask(mask, what)
@@ -500,15 +487,15 @@ private
       p.strip!
 
       if p.downcase == 'ctrl'
-        mask = set_mask(mask, Gdk::Window::CONTROL_MASK)
+        mask = set_mask(mask, Gdk::ModifierType::CONTROL_MASK)
       elsif p.downcase == 'shift'
-        mask = set_mask(mask, Gdk::Window::SHIFT_MASK)
+        mask = set_mask(mask, Gdk::ModifierType::SHIFT_MASK)
       elsif p.downcase == 'mod1'
-        mask = set_mask(mask, Gdk::Window::MOD1_MASK)
+        mask = set_mask(mask, Gdk::ModifierType::MOD1_MASK)
       elsif p.downcase == 'mod2'
-        mask = set_mask(mask, Gdk::Window::MOD2_MASK)
+        mask = set_mask(mask, Gdk::ModifierType::MOD2_MASK)
       elsif p.downcase == 'mod3'
-        mask = set_mask(mask, Gdk::Window::MOD3_MASK)
+        mask = set_mask(mask, Gdk::ModifierType::MOD3_MASK)
       else
         char = Gdk::Keyval.from_name(p)
       end
@@ -734,38 +721,48 @@ private
   def set_colors(terminal, what)
     colors = []
     what.split(':').each do |c|
-      colors.push(Gdk::Color.parse(c))
+      colors.push(Gdk::RGBA.parse(c))
     end
 
     terminal.set_colors(@settings['color_foreground'],
                         @settings['color_background'], colors);
   end
 
+  def set_cursor_blink_mode(terminal, what)
+    if what == 'system'
+      terminal.set_cursor_blink_mode Vte::CursorBlinkMode::SYSTEM
+    elsif what == 'on'
+      terminal.set_cursor_blink_mode Vte::CursorBlinkMode::ON
+    elsif what == 'off'
+      terminal.set_cursor_blink_mode Vte::CursorBlinkMode::OFF
+    end
+  end
+
   def set_backspace_binding(terminal, what)
     if what == 'ASCII_DELETE'
-      terminal.set_backspace_binding Vte::Terminal::EraseBinding::ASCII_DELETE
+      terminal.set_backspace_binding Vte::EraseBinding::ASCII_DELETE
     elsif what == 'ASCII_BACKSPACE'
-      terminal.set_backspace_binding Vte::Terminal::EraseBinding::ASCII_BACKSPACE
+      terminal.set_backspace_binding Vte::EraseBinding::ASCII_BACKSPACE
     elsif what == 'AUTO'
-      terminal.set_backspace_binding Vte::Terminal::EraseBinding::AUTO
+      terminal.set_backspace_binding Vte::EraseBinding::AUTO
     elsif what == 'DELETE_SEQUENCE'
-      terminal.set_backspace_binding Vte::Terminal::EraseBinding::DELETE_SEQUENCE
+      terminal.set_backspace_binding Vte::EraseBinding::DELETE_SEQUENCE
     elsif what == 'TTY'
-      terminal.set_backspace_binding Vte::Terminal::EraseBinding::TTY
+      terminal.set_backspace_binding Vte::EraseBinding::TTY
     end
   end
 
   def set_delete_binding(terminal, what)
     if what == 'ASCII_DELETE'
-      terminal.set_delete_binding Vte::Terminal::EraseBinding::ASCII_DELETE
+      terminal.set_delete_binding Vte::EraseBinding::ASCII_DELETE
     elsif what == 'ASCII_BACKSPACE'
-      terminal.set_delete_binding Vte::Terminal::EraseBinding::ASCII_BACKSPACE
+      terminal.set_delete_binding Vte::EraseBinding::ASCII_BACKSPACE
     elsif what == 'AUTO'
-      terminal.set_delete_binding Vte::Terminal::EraseBinding::AUTO
+      terminal.set_delete_binding Vte::EraseBinding::AUTO
     elsif what == 'DELETE_SEQUENCE'
-      terminal.set_delete_binding Vte::Terminal::EraseBinding::DELETE_SEQUENCE
+      terminal.set_delete_binding Vte::EraseBinding::DELETE_SEQUENCE
     elsif what == 'TTY'
-      terminal.set_delete_binding Vte::Terminal::EraseBinding::TTY
+      terminal.set_delete_binding Vte::EraseBinding::TTY
     end
   end
 
@@ -804,20 +801,20 @@ class Notification
       @config[c[:key]] = c[:value]
     end
 
-    @window = Gtk::Window.new Gtk::Window::POPUP
+    @window = Gtk::Window.new Gtk::WindowType::POPUP
     @window.decorated = false
     @window.set_keep_above true
     @window.set_app_paintable true
-    @window.window_position = Gtk::Window::POS_CENTER_ALWAYS
+    @window.window_position = Gtk::WindowPosition::CENTER_ALWAYS
 
     @label = Gtk::Label.new
     @label.justify = Gtk::Justification::CENTER
     @window.add @label
 
-    @window.signal_connect('expose-event') do expose end
+    @window.signal_connect('draw') do draw end
 
-    colormap = @window.screen.rgba_colormap
-    @window.set_colormap @window.screen.rgba_colormap if not colormap.nil?
+    visual = @window.screen.rgba_visual
+    @window.set_visual @window.screen.rgba_visual if not visual.nil?
 
     @window.set_can_focus false
     @label.set_can_focus false
@@ -861,7 +858,7 @@ class Notification
   end
 
 private
-  def expose
+  def draw
     c = @window.window.create_cairo_context
 
     c.set_source_rgba(1.0, 1.0, 1.0, 0.0)

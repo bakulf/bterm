@@ -672,7 +672,7 @@ private
   # Buttons
   def button_pressed(terminal, event)
     string = terminal.match_check(event.x / terminal.char_width, event.y / terminal.char_height)
-    return if string.nil? or string.empty?
+    return if string.length != 2 or string[0].nil? or string[0].empty?
 
     match = true
     @matches[:event].split(' ').each do |p|

@@ -584,7 +584,7 @@ private
 
     # we can quit
     if @terminals.empty? and @detached_terminals.empty?
-      destroy
+      @window.hide
 
     # something detached...
     elsif @terminals.empty?
@@ -790,6 +790,7 @@ private
         if n.start_with? 'notify '
           @notification.show n[7..-1]
         elsif n.start_with? 'show'
+          terminal_new if @terminals.empty?
           @window.show
           @window.present
         else

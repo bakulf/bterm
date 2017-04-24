@@ -7,6 +7,7 @@
 require "vte3"
 require "yaml"
 require "shellwords"
+require 'optparse'
 
 # regular expressions to highlight links in terminal. This code was
 # lovely stolen from the great gnome-terminal project, thank you =)
@@ -32,7 +33,7 @@ class BTerm
   attr_accessor :notification
   attr_accessor :mutex
 
-  def init
+  def init(options)
     @configuration = [
       { :key => 'cwd',                         :default => "previous", :internal => true,
         :func => 'set_cwd',                    :type => :string,
@@ -164,7 +165,8 @@ class BTerm
                :notification_received => [] }
 
     setup_notifications
-    load_modules
+
+    load_modules unless options[:nomodules]
 
     @terminals = []
     @detached_terminals = []
@@ -173,11 +175,11 @@ class BTerm
     create_hotkeys
     create_notification
 
-    terminal_new ARGV
+    terminal_new ARGV unless options[:hide]
   end
 
-  def run
-    @window.show_all
+  def run(options)
+    @window.show_all unless options[:hide]
   end
 
   def terminal_new(cmd = nil)
@@ -426,6 +428,7 @@ private
   # Creation of the main window
   def create_window
     @window = Gtk::Window.new("BTerm - the baku's terminal")
+    @window.icon = "/usr/share/pixmaps/bterm/bterm.png"
     @window.fullscreen
     @window.decorated = false
 
@@ -887,7 +890,43 @@ end
 
 # Let's start!
 
+options = {}
+opts = OptionParser.new do |opts|
+  opts.banner = "Usage: bterm [options] <command...>"
+  opts.version = '0.xxx'
+
+  opts.separator ""
+  opts.separator "Options:"
+
+  options[:hide] = false
+  opts.on('-i', '--hide', 'Start but without showing any terminal') do
+    options[:hide] = true
+  end
+
+  options[:nomodules] = false
+  opts.on('-n', '--nomodules', 'Don\'t load modules') do
+    options[:nomodules] = true
+  end
+
+  opts.on('-h', '--help', 'Display this screen.') do
+    puts opts
+    exit
+  end
+
+  opts.separator ""
+  opts.separator "BSD license - Andrea Marchesini <baku@ippolita.net>"
+  opts.separator ""
+end
+
+# I don't want to show exceptions if the params are wrong:
+begin
+  opts.parse!
+rescue
+  puts opts
+  exit
+end
+
 @@bterm = BTerm.new
-@@bterm.init
-@@bterm.run
+@@bterm.init options
+@@bterm.run options
 Gtk.main

@@ -582,6 +582,8 @@ private
       cb.call(@terminals[pos][:terminal], @terminals[pos][:pid])
     end
 
+    current_pos = terminal_pos
+
     @terminals[pos][:terminal].destroy
     @terminals.delete_at(pos)
 
@@ -594,7 +596,7 @@ private
       terminal_attach
 
     # let's show the next one:
-    else
+    elsif current_pos == pos
       terminal_show pos
     end
   end

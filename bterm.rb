@@ -209,7 +209,8 @@ class BTerm
 
     if @matches[:rules].is_a? Array
       @matches[:rules].each do |m|
-        tag = terminal.match_add_gregex GLib::Regex.new(m['regexp']), 0
+        regex = Vte::Regex.new(m['regexp'], [:optimize], :for_match => true)
+        tag = terminal.match_add_regex regex, 0
         terminal.match_set_cursor_type tag, Gdk::CursorType::HAND2
       end
     end

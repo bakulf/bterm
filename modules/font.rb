@@ -41,20 +41,20 @@ class FontModule
   end
 end
 
-@@fontModule = FontModule.new
+$fontModule = FontModule.new
 
-@@bterm.register_hooks :terminal_new, @@fontModule.method(:terminal_new)
-@@bterm.register_hooks :terminal_show, @@fontModule.method(:terminal_show)
-@@bterm.register_hooks :terminal_close, @@fontModule.method(:terminal_close)
+$bterm.register_hooks :terminal_new, $fontModule.method(:terminal_new)
+$bterm.register_hooks :terminal_show, $fontModule.method(:terminal_show)
+$bterm.register_hooks :terminal_close, $fontModule.method(:terminal_close)
 
 def font_plus()
-  @@fontModule.plus
+  $fontModule.plus
 end
 
 def font_minus()
-  @@fontModule.minus
+  $fontModule.minus
 end
 
 def font_reset()
-  @@fontModule.reset
+  $fontModule.reset
 end

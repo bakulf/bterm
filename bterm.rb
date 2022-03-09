@@ -410,7 +410,7 @@ private
       f =File.open dirname + '/example.rb', 'w'
       f.write "# Something useful for the custom hotkeys\n"
       f.write "def process_exec(cmd)\n  job = fork do\n   exec cmd\n  end\n\n  Process.detach job\nend\n\n"
-      f.write "def terminal_new(cmd = nil)\n  @@bterm.terminal_new\nend\n\n"
+      f.write "def terminal_new(cmd = nil)\n  $bterm.terminal_new\nend\n\n"
       f.close
     end
 
@@ -929,7 +929,7 @@ rescue
   exit
 end
 
-@@bterm = BTerm.new
-@@bterm.init options
-@@bterm.run options
+$bterm = BTerm.new
+$bterm.init options
+$bterm.run options
 Gtk.main

@@ -32,7 +32,7 @@ thr = Thread.new do
 end
 
 def msg(what)
-  @@bterm.mutex.lock
-  @@bterm.append_notification what
-  @@bterm.mutex.unlock
+  $bterm.mutex.lock
+  $bterm.append_notification what
+  $bterm.mutex.unlock
 end

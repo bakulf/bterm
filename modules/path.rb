@@ -1,5 +1,5 @@
 def path
-  terminal = @@bterm.terminal_current
+  terminal = $bterm.terminal_current
   return if terminal.nil?
 
   file = "/proc/#{terminal[:pid]}/cwd"
@@ -9,5 +9,5 @@ def path
     return
   end
 
-  @@bterm.notification.show pwd
+  $bterm.notification.show pwd
 end

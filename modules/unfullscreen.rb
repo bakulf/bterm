@@ -68,4 +68,4 @@ def window_created(window)
   @window = window
 end
 
-@@bterm.register_hooks :window_created, method(:window_created)
+$bterm.register_hooks :window_created, method(:window_created)

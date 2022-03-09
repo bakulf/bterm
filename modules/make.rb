@@ -26,9 +26,9 @@ class MakeModule
 	  data[:compiling] = compiling
 
 	  if compiling
-	    @@bterm.notification.show @compiling_sentences.sample
+	    $bterm.notification.show @compiling_sentences.sample
 	  else
-	    @@bterm.notification.show @stop_compiling_sentences.sample
+	    $bterm.notification.show @stop_compiling_sentences.sample
 	  end
 	end
       end
@@ -43,7 +43,7 @@ class MakeModule
 
   def terminal_show(terminal, pid)
     if @terminals[pid][:compiling]
-      @@bterm.notification.show @compiling_sentences.sample
+      $bterm.notification.show @compiling_sentences.sample
     end
   end
 
@@ -98,6 +98,6 @@ end
 
 @makeModule = MakeModule.new
 
-@@bterm.register_hooks :terminal_new, @makeModule.method(:terminal_new)
-@@bterm.register_hooks :terminal_show, @makeModule.method(:terminal_show)
-@@bterm.register_hooks :terminal_close, @makeModule.method(:terminal_close)
+$bterm.register_hooks :terminal_new, @makeModule.method(:terminal_new)
+$bterm.register_hooks :terminal_show, @makeModule.method(:terminal_show)
+$bterm.register_hooks :terminal_close, @makeModule.method(:terminal_close)

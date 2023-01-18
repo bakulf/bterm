@@ -1,6 +1,6 @@
 require 'socket'
 
-file = '/tmp/bterm.socket'
+file = '/var/run/bterm/bterm.socket'
 
 if File.exists? file
   begin
